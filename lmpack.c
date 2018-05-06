@@ -15,29 +15,41 @@
  * compilation.
  */
 #define LUA_LIB
-#include <stdlib.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <lua.h>
 #include <lauxlib.h>
+#include <lua.h>
+#include <luaconf.h>
 
-#define MPACK_API static
-#include "mpack-src/src/mpack.c"
+#ifdef MPACK_USE_SYSTEM
+# include <mpack.h>
+#else
+# define MPACK_API static
+# include "mpack-src/src/mpack.c"
+#endif
 
 #define UNPACKER_META_NAME "mpack.Unpacker"
 #define PACKER_META_NAME "mpack.Packer"
 #define SESSION_META_NAME "mpack.Session"
 #define NIL_NAME "mpack.NIL"
 
-#if LUA_VERSION_NUM > 501
 /* 
  * TODO(tarruda): When targeting lua 5.3 and being compiled with `long long`
  * support(not -ansi), we should make use of lua 64 bit integers for
  * representing msgpack integers, since `double` can't represent the full range.
  */
-typedef luaL_Reg luaL_reg;
-#define luaL_register(L, name, lreg) (luaL_setfuncs((L), (lreg), 0))
-#define lua_objlen(L, idx) (lua_rawlen(L, (idx)))
+
+#ifndef luaL_reg
+/* Taken from Lua5.1's lauxlib.h */
+#define luaL_reg    luaL_Reg
+#endif
+
+#if LUA_VERSION_NUM > 501
+#ifndef luaL_register
+#define luaL_register(L,n,f) luaL_setfuncs(L,f,0)
+#endif
 #endif
 
 typedef struct {
@@ -193,7 +205,13 @@ static mpack_uint32_t lmpack_objlen(lua_State *L, int *is_array)
   assert(top = lua_gettop(L));
 
   if ((type = lua_type(L, -1)) != LUA_TTABLE) {
+#if LUA_VERSION_NUM >= 502
+    len = lua_rawlen(L, -1);
+#elif LUA_VERSION_NUM == 501
     len = lua_objlen(L, -1);
+#else
+    #error You have either broken or too old Lua installation. This library requires Lua>=5.1
+#endif
     goto end;
   }
 
@@ -689,6 +707,7 @@ static void lmpack_unparse_enter(mpack_parser_t *parser, mpack_node_t *node)
         node->tok = mpack_pack_nil();
         break;
       }
+    /* Fallthrough */
     default:
       luaL_error(L, "can't serialize object");
   }
