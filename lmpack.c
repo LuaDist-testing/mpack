@@ -22,7 +22,7 @@
 #include <lauxlib.h>
 
 #define MPACK_API static
-#include "../../src/mpack.c"
+#include "mpack-src/src/mpack.c"
 
 #define UNPACKER_META_NAME "mpack.Unpacker"
 #define PACKER_META_NAME "mpack.Packer"

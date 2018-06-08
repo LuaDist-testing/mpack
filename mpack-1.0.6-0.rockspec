@@ -1,18 +1,18 @@
 -- This file was automatically generated for the LuaDist project.
 
-local git_tag = '1.0.4'
+local git_tag = '1.0.6'
 
 package = 'mpack'
 version = git_tag .. '-0'
 -- LuaDist source
 source = {
-  tag = "1.0.4-0",
+  tag = "1.0.6-0",
   url = "git://github.com/LuaDist-testing/mpack.git"
 }
 -- Original source
 -- source = {
---   url = 'https://github.com/tarruda/libmpack/archive/' .. git_tag .. '.tar.gz',
---   dir = 'libmpack-' .. git_tag .. '/binding/lua',
+--   url = 'https://github.com/libmpack/libmpack-lua/releases/download/' ..
+--     git_tag .. '/libmpack-lua-' .. git_tag .. '.tar.gz'
 -- }
 
 description = {
