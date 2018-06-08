@@ -27,9 +27,14 @@
 #define UNPACKER_META_NAME "mpack.Unpacker"
 #define PACKER_META_NAME "mpack.Packer"
 #define SESSION_META_NAME "mpack.Session"
-#define NIL_NAME "mpack.Nil"
+#define NIL_NAME "mpack.NIL"
 
 #if LUA_VERSION_NUM > 501
+/* 
+ * TODO(tarruda): When targeting lua 5.3 and being compiled with `long long`
+ * support(not -ansi), we should make use of lua 64 bit integers for
+ * representing msgpack integers, since `double` can't represent the full range.
+ */
 typedef luaL_Reg luaL_reg;
 #define luaL_register(L, name, lreg) (luaL_setfuncs((L), (lreg), 0))
 #define lua_objlen(L, idx) (lua_rawlen(L, (idx)))
@@ -428,6 +433,7 @@ static int lmpack_unpacker_unpack(lua_State *L)
     return luaL_error(L, "expecting between 2 and 3 arguments"); 
 
   unpacker = lmpack_check_unpacker(L, 1);
+  unpacker->L = L;
 
   str_init = str = luaL_checklstring(L, 2, &len);
   startpos = lua_gettop(L) == 3 ? luaL_checknumber(L, 3) : 1;
@@ -715,6 +721,7 @@ static int lmpack_packer_pack(lua_State *L)
     return luaL_error(L, "expecting exactly 2 arguments"); 
 
   packer = lmpack_check_packer(L, 1);
+  packer->L = L;
   packer->root = lmpack_ref(L, packer->reg);
   luaL_buffinit(L, &buffer);
   b = luaL_prepbuffer(&buffer);
@@ -826,6 +833,7 @@ static int lmpack_session_receive(lua_State *L)
   if (session->unpacker != LUA_REFNIL) {
     lmpack_geti(L, session->reg, session->unpacker);
     unpacker = lmpack_check_unpacker(L, -1);
+    unpacker->L = L;
     rcount += 2;
     lua_pop(L, 1);
   }
@@ -964,6 +972,12 @@ static int lmpack_session_notify(lua_State *L)
   result = mpack_rpc_notify(session->session, &b, &bl);
   assert(result == MPACK_OK);
   lua_pushlstring(L, buf, sizeof(buf) - bl);
+  return 1;
+}
+
+static int lmpack_nil_tostring(lua_State* L)
+{
+  lua_pushfstring(L, NIL_NAME, lua_topointer(L, 1));
   return 1;
 }
 
@@ -1108,8 +1122,16 @@ int luaopen_mpack(lua_State *L)
   lua_pushvalue(L, -1);
   lua_setfield(L, -2, "__index");
   luaL_register(L, NULL, session_methods);
+  /* NIL */
+  luaL_newmetatable(L, NIL_NAME);
+  lua_pushstring(L, "__tostring");
+  lua_pushcfunction(L, lmpack_nil_tostring);
+  lua_settable(L, -3);
   /* Use a constant userdata to represent NIL */
   (void)lua_newuserdata(L, sizeof(void *));
+  /* Assign the metatable to the userdata object */
+  luaL_getmetatable(L, NIL_NAME);
+  lua_setmetatable(L, -2);
   /* Save NIL on the registry so we can access it easily from other functions */
   lua_setfield(L, LUA_REGISTRYINDEX, NIL_NAME);
   /* module */
