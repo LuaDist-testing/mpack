@@ -1,12 +1,12 @@
 -- This file was automatically generated for the LuaDist project.
 
-local git_tag = '1.0.2'
+local git_tag = '1.0.3'
 
 package = 'mpack'
 version = git_tag .. '-0'
 -- LuaDist source
 source = {
-  tag = "1.0.2-0",
+  tag = "1.0.3-0",
   url = "git://github.com/LuaDist-testing/mpack.git"
 }
 -- Original source
